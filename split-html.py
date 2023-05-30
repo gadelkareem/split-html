@@ -9,7 +9,7 @@ from collections import Counter
 from urllib.parse import urljoin
 
 
-def split_html(input_file, output_dir, url_root, max_words=1800):
+def split_html(input_file, output_dir='output', url_root='', max_words=1800):
     # Make sure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -40,7 +40,7 @@ def split_html(input_file, output_dir, url_root, max_words=1800):
         words = str(element).split()
 
         # Check if adding the words from this element would exceed the maximum word count
-        if word_count + len(words) > max_words:
+        if word_count + len(words) > int(max_words):
             # If so, write the current chunk of elements to an output file
             c['files'] += 1
             output_file = f"{output_dir}/{output_dir}_{c['files']}.html"
@@ -80,6 +80,8 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output_dir', help='The output directory for the split HTML files', required=False,
                         default='output')
     parser.add_argument('-u', '--url_root', help='The root directory URL on the server', required=False, default='/')
+    parser.add_argument('-w', '--max_words', help='The maximum number of words per output file', required=False,
+                        default=1800)
     args = parser.parse_args()
 
-    split_html(args.input_file, args.output_dir, args.url_root)
+    split_html(args.input_file, args.output_dir, args.url_root, args.max_words)

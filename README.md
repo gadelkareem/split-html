@@ -6,9 +6,9 @@ Split HTML is a simple python script that splits a HTML file into multiple files
 ## Usage
 ```
 # Split into HTML
-python3 split-html.py -i <html_file> -o <output_dir> -u <url_root>
+python3 split-html.py -i <html_file> -o <output_dir> -u <url_root> -w <max_words>
 # Split into Markdown
-python3 split-md.py -i <html_file> -o <output_dir> -u <url_root>
+python3 split-md.py -i <html_file> -o <output_dir> -u <url_root> -w <max_words>
 ```
 
 ## Arguments
@@ -16,6 +16,7 @@ python3 split-md.py -i <html_file> -o <output_dir> -u <url_root>
 -i, --input_file: The HTML file to split
 -o, --output_dir: The output directory to save the split files
 -u, --url_root: The root URL to use to prefix the paths
+-w, --max_words: The max number of words per file
 ```
 
 ## Requirements

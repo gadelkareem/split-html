@@ -7,6 +7,7 @@ import html2text
 from collections import Counter
 from urllib.parse import urljoin
 
+
 def split_markdown(input_file, output_dir='output', url_root='', max_words=1800):
     # Make sure output directory exists
     if not os.path.exists(output_dir):
@@ -21,6 +22,11 @@ def split_markdown(input_file, output_dir='output', url_root='', max_words=1800)
     h.body_width = 0
     markdown = h.handle(html)
 
+    # Add the url_root to image paths in Markdown
+    markdown = re.sub(r'\[(.*?)\]\((.*?)\)', lambda
+        match: f"[{match.group(1)}]({urljoin(urljoin(url_root, output_dir) + '/', match.group(2))})", markdown)
+
+    # Write the Markdown to a file
     with open(f"{output_dir}/{output_dir}.md", 'w', encoding='utf-8') as f:
         f.write(markdown)
 
@@ -41,7 +47,7 @@ def split_markdown(input_file, output_dir='output', url_root='', max_words=1800)
         words.append('\n')
 
         # Check if adding the words from this line would exceed the maximum word count
-        if word_count + len(words) > max_words:
+        if word_count + len(words) > int(max_words):
             # If so, write the current chunk of words to an output file
             c['files'] += 1
             output_file = f"{output_dir}/{output_dir}_{c['files']}.md"
@@ -77,6 +83,8 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input_file', help='The input HTML file to split', required=True)
     parser.add_argument('-o', '--output_dir', help='The output directory name', required=False, default='output')
     parser.add_argument('-u', '--url_root', help='The root directory URL on the server', required=False, default='')
+    parser.add_argument('-w', '--max_words', help='The maximum number of words per output file', required=False,
+                        default=1800)
     args = parser.parse_args()
 
-    split_markdown(args.input_file, args.output_dir, args.url_root)
+    split_markdown(args.input_file, args.output_dir, args.url_root, args.max_words)
