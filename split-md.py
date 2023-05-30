@@ -1,24 +1,20 @@
 #!env python3
 # -*- coding: utf-8 -*-
-
 import os
 import re
 import argparse
 import html2text
 from collections import Counter
+from urllib.parse import urljoin
 
-def split_markdown(input_file, output_dir='output', max_words=1800):
+def split_markdown(input_file, output_dir='output', url_root='', max_words=1800):
     # Make sure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Regex to find <'br', 'p', 'h1', 'h2', 'h3', 'h4', 'tr', 'th'> tags that may or may not have slashes
-    # regex = re.compile(r'(<\s*(/\s*(p|h[1-4]|tr|th)|br\s*/)\s*>)', re.IGNORECASE)
     # Open and parse the input HTML file
     with open(input_file, 'r', encoding='utf-8') as f:
         html = f.read()
-        # add newlines after the regex
-        # html = re.sub(regex, '\\1\n\n', html)
 
     # Convert HTML to Markdown
     h = html2text.HTML2Text()
@@ -72,13 +68,15 @@ def split_markdown(input_file, output_dir='output', max_words=1800):
     # Create an index file with links to all output files
     with open(f"{output_dir}/{output_dir}_index.md", 'w', encoding='utf-8') as f:
         for file, text in output_files:
-            f.write(f'[{text}]({file})\n\n')
+            file_url = urljoin(url_root, file)
+            f.write(f'{file_url}\n')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input_file', help='The input HTML file to split', required=True)
     parser.add_argument('-o', '--output_dir', help='The output directory name', required=False, default='output')
+    parser.add_argument('-u', '--url_root', help='The root directory URL on the server', required=False, default='')
     args = parser.parse_args()
 
-    split_markdown(args.input_file, args.output_dir)
+    split_markdown(args.input_file, args.output_dir, args.url_root)

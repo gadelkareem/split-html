@@ -2,22 +2,23 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
 import os
 import argparse
-from bs4 import BeautifulSoup, Tag
+import bs4
 from collections import Counter
+from urllib.parse import urljoin
 
-def split_html(input_file, output_dir='output', max_words=1800):
+
+def split_html(input_file, output_dir, url_root, max_words=1800):
     # Make sure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     # Open and parse the input HTML file
     with open(input_file, 'r', encoding='utf-8') as f:
-        soup = BeautifulSoup(f, 'html.parser')
+        html = f.read()
+
+    soup = bs4.BeautifulSoup(html, 'html.parser')
 
     # Counter to keep track of the number of output files
     c = Counter()
@@ -25,78 +26,60 @@ def split_html(input_file, output_dir='output', max_words=1800):
     # List to hold links to all output files for the index
     output_files = []
 
-    # Check for style and script tags and write to external files
-    style_tag = soup.find('style')
-    script_tag = soup.find('script')
-    if style_tag:
-        with open(f"{output_dir}/styles.css", 'w', encoding='utf-8') as f:
-            f.write(style_tag.string)
-        style_tag.decompose()
-    if script_tag:
-        with open(f"{output_dir}/script.js", 'w', encoding='utf-8') as f:
-            f.write(script_tag.string)
-        script_tag.decompose()
-
-    # Iterate over the tags
+    # Variables to hold the current chunk of elements and the current word count
+    chunk = []
     word_count = 0
-    new_soup = BeautifulSoup('<html><head></head><body></body></html>', 'html.parser')
-    open_tags = []
-    for content in soup.body.contents:
-        if isinstance(content, Tag):
-            word_count += len(str(content).split())
-            open_tags.append(content.name)
-        else:
-            word_count += len(content.split())
-        new_soup.body.append(content.extract())
-        if word_count >= max_words:
-            # Close any open tags
-            for tag in reversed(open_tags):
-                new_soup.body.append(BeautifulSoup(f'</{tag}>', 'html.parser'))
 
-            # Generate the output filename
+    # Update image src attributes with url_root
+    for img in soup.find_all('img'):
+        img['src'] = urljoin(urljoin(url_root, output_dir) + '/', img['src'])
+
+    # Iterate over the elements in the HTML body
+    for element in soup.body:
+        # Split the string representation of the element into words
+        words = str(element).split()
+
+        # Check if adding the words from this element would exceed the maximum word count
+        if word_count + len(words) > max_words:
+            # If so, write the current chunk of elements to an output file
             c['files'] += 1
             output_file = f"{output_dir}/{output_dir}_{c['files']}.html"
-
-            # Add style and script links to the head of the new soup object
-            if style_tag:
-                new_soup.head.append(soup.new_tag("link", rel="stylesheet", href="styles.css"))
-            if script_tag:
-                new_soup.body.append(soup.new_tag("script", src="script.js"))
-
-            # Write the new soup object to the output file
             with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(str(new_soup))
+                for e in chunk:
+                    f.write(str(e))
+            output_files.append(output_file)
 
-            # Add a link to the output file to the list
-            output_files.append(f"{output_dir}_{c['files']}.html")
+            # Start a new chunk with the current element
+            chunk = [element]
+            word_count = len(words)
+        else:
+            # If not, add the current element to the chunk
+            chunk.append(element)
+            word_count += len(words)
 
-            # Reset word_count and new_soup for the next chunk
-            word_count = 0
-            open_tags = []
-            new_soup = BeautifulSoup('<html><head></head><body></body></html>', 'html.parser')
+    # Write any remaining elements to a final output file
+    if chunk:
+        c['files'] += 1
+        output_file = f"{output_dir}/{output_dir}_{c['files']}.html"
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for e in chunk:
+                f.write(str(e))
+        output_files.append(output_file)
 
     # Create an index file with links to all output files
     with open(f"{output_dir}/{output_dir}_index.html", 'w', encoding='utf-8') as f:
-        f.write("<html><body>\n")
         for file in output_files:
-            f.write(f'<a href="{file}">{file}</a><br/>\n')
-        f.write("</body></html>\n")
+            # Create a URL for the file based on the URL root directory
+            file_url = os.path.join(url_root, file)
+            f.write(f'<a href="{file_url}">{file_url}</a><br>\n')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input_file', help='The input HTML file to split', required=True)
+    parser.add_argument('-o', '--output_dir', help='The output directory for the split HTML files', required=False,
+                        default='output')
+    parser.add_argument('-u', '--url_root', help='The root directory URL on the server', required=False, default='/')
     args = parser.parse_args()
 
-    split_html(args.input_file)
-
-
-
-
-
-
-
-
-
-
-
+    split_html(args.input_file, args.output_dir, args.url_root)
